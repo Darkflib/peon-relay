@@ -1,0 +1,21 @@
+[project]
+name = "peon-relay"
+version = "0.1.0"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.111",
+    "uvicorn[standard]>=0.29",
+    "pydantic>=2.7",
+    "pydantic-settings>=2.3",
+    "pyyaml>=6.0",
+    "structlog>=24.1",
+]
+
+[project.optional-dependencies]
+dev = ["pytest", "pytest-asyncio", "httpx", "ruff"]
+
+[tool.setuptools.packages.find]
+include = ["peon_relay*"]
+
+[project.scripts]
+peon-relay = "peon_relay.main:run"

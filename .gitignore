@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+dist/
+*.egg-info/
+config.yaml
+sounds/*/
+!sounds/.gitkeep
+.ruff_cache/
+.pytest_cache/

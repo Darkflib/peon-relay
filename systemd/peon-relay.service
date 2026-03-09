@@ -1,0 +1,14 @@
+[Unit]
+Description=Peon Relay — CESP event relay for Claude Code agents
+After=network.target sound.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/peon-relay
+ExecStart=/opt/peon-relay/.venv/bin/peon-relay
+Restart=on-failure
+RestartSec=5
+Environment=PEON_LOG__LEVEL=INFO
+
+[Install]
+WantedBy=multi-user.target
