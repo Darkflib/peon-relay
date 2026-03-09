@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
 import structlog
@@ -19,6 +19,7 @@ class PeonEvent:
     category: str
     session_id: str
     timestamp: float
+    pack: str | None = field(default=None)  # pack override; None = use default
 
 
 class EventQueue:
@@ -69,7 +70,9 @@ class EventQueue:
                         )
                         continue
 
-                sound_path = self._cesp.pick_sound(event.category)
+                sound_path = self._cesp.pick_sound(
+                    event.category, pack_name=event.pack
+                )
                 await self._registry.dispatch(event, sound_path)
                 self._last_dispatched[event.category] = time.monotonic()
 

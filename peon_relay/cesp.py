@@ -55,8 +55,13 @@ class CESPManager:
     def active_pack(self) -> Pack | None:
         return self.packs.get(self.active_pack_name)
 
-    def pick_sound(self, category: str) -> Path | None:
-        pack = self.active_pack
+    def pick_sound(
+        self, category: str, pack_name: str | None = None
+    ) -> Path | None:
+        if pack_name:
+            pack = self.packs.get(pack_name)
+        else:
+            pack = self.active_pack
         if pack is None:
             return None
 

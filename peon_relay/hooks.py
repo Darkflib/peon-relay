@@ -81,8 +81,12 @@ def map_hook_to_category(payload: dict[str, Any]) -> str | None:
             return None
 
 
-def process_hook(payload: dict[str, Any], queue: EventQueue) -> dict[str, str]:
-    logger.debug("hook_payload", payload=payload)
+def process_hook(
+    payload: dict[str, Any],
+    queue: EventQueue,
+    pack: str | None = None,
+) -> dict[str, str]:
+    logger.debug("hook_payload", payload=payload, pack_override=pack)
 
     category = map_hook_to_category(payload)
 
@@ -99,6 +103,7 @@ def process_hook(payload: dict[str, Any], queue: EventQueue) -> dict[str, str]:
         category=category,
         session_id=session_id,
         timestamp=time.monotonic(),
+        pack=pack,
     )
     queue.enqueue(event)
     return {"status": "queued", "category": category}

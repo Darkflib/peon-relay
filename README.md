@@ -48,6 +48,61 @@ Add to `.claude/settings.json`:
 }
 ```
 
+## Per-agent sound packs
+
+Each agent can use a different sound pack. Resolution order (first match wins):
+
+1. **`X-Peon-Pack` header** — set per agent in hook config
+2. **`client_packs`** — IP-to-pack mapping in `config.yaml`
+3. **`active_pack`** — the global default
+
+### Header override
+
+Set the `X-Peon-Pack` header in each agent's `.claude/settings.json`:
+
+```json
+{
+  "hooks": {
+    "PreToolUse": [{
+      "type": "http",
+      "url": "http://127.0.0.1:9876/hook",
+      "timeout": 5,
+      "headers": { "X-Peon-Pack": "zerg" }
+    }],
+    "PostToolUse": [{
+      "type": "http",
+      "url": "http://127.0.0.1:9876/hook",
+      "timeout": 5,
+      "headers": { "X-Peon-Pack": "zerg" }
+    }],
+    "Notification": [{
+      "type": "http",
+      "url": "http://127.0.0.1:9876/hook",
+      "timeout": 5,
+      "headers": { "X-Peon-Pack": "zerg" }
+    }],
+    "Stop": [{
+      "type": "http",
+      "url": "http://127.0.0.1:9876/hook",
+      "timeout": 5,
+      "headers": { "X-Peon-Pack": "zerg" }
+    }]
+  }
+}
+```
+
+### IP-based mapping
+
+Map client IPs to packs in `config.yaml` (useful for remote agents):
+
+```yaml
+audio:
+  active_pack: "peon"
+  client_packs:
+    "192.168.1.50": "zerg"
+    "192.168.1.51": "marine"
+```
+
 ## Endpoints
 
 | Method | Path | Description |

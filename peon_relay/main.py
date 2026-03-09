@@ -48,7 +48,7 @@ async def lifespan(app: FastAPI):
         mute=config.audio.mute,
         disabled_categories=config.audio.disabled_categories,
     )
-    log_handler = LogHandler(active_pack=config.audio.active_pack)
+    log_handler = LogHandler(default_pack=config.audio.active_pack)
 
     registry = HandlerRegistry([log_handler, audio_handler])
 
@@ -77,10 +77,23 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="peon-relay", lifespan=lifespan)
 
 
+def _resolve_pack(request: Request) -> str | None:
+    """Resolve pack: X-Peon-Pack header > client IP mapping > None (default)."""
+    header = request.headers.get("x-peon-pack")
+    if header:
+        return header
+    if _config and _config.audio.client_packs:
+        client_ip = request.client.host if request.client else None
+        if client_ip and client_ip in _config.audio.client_packs:
+            return _config.audio.client_packs[client_ip]
+    return None
+
+
 @app.post("/hook")
 async def hook_endpoint(request: Request) -> JSONResponse:
     payload: dict[str, Any] = await request.json()
-    result = process_hook(payload, _queue)
+    pack = _resolve_pack(request)
+    result = process_hook(payload, _queue, pack=pack)
     return JSONResponse(result)
 
 

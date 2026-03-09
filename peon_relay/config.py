@@ -16,6 +16,7 @@ class AudioConfig(BaseModel):
     enabled: bool = True
     pack_dir: str = "sounds"
     active_pack: str = "peon"
+    client_packs: dict[str, str] = {}  # client IP -> pack name
     volume: float = 0.7
     mute: bool = False
     disabled_categories: list[str] = []

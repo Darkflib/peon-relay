@@ -6,6 +6,7 @@ audio:
   enabled: true
   pack_dir: "sounds"        # relative to CWD or absolute
   active_pack: "peon"
+  client_packs: {}           # per-client IP overrides, e.g. {"192.168.1.50": "zerg"}
   volume: 0.7               # 0.0–1.0
   mute: false
   disabled_categories: []   # e.g. ["task.progress"]
