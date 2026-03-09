@@ -40,13 +40,15 @@ async def lifespan(app: FastAPI):
     config = Settings.load()
     _config = config
 
+    import logging
+
     structlog.configure(
         wrapper_class=structlog.make_filtering_bound_logger(
-            structlog.get_level_from_name(config.log.level)
+            logging.getLevelName(config.log.level)
         ),
     )
 
-    cesp = load_packs(config.audio.pack_dir, config.audio.active_pack)
+    cesp = load_packs(config.audio.pack_dir, config.audio.active_pack, port=config.server.port)
     _cesp = cesp
 
     _registry = RegistryClient(config.registry, config.audio.pack_dir)

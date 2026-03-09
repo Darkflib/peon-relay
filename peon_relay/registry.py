@@ -9,10 +9,11 @@ import tempfile
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Any
 
 import httpx
 import structlog
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 from peon_relay.config import RegistryConfig
 
@@ -25,11 +26,15 @@ logger = structlog.get_logger()
 
 
 class RegistryAuthor(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
     name: str
     github: str = ""
 
 
 class RegistryPack(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
     name: str
     display_name: str
     version: str
@@ -46,13 +51,15 @@ class RegistryPack(BaseModel):
     source_path: str = "."
     manifest_sha256: str = ""
     tags: list[str] = []
-    preview_sounds: list[str] = []
+    preview_sounds: list[Any] = []
     added: str = ""
     updated: str = ""
     quality: str | None = None
 
 
 class RegistryIndex(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
     version: int
     packs: list[RegistryPack]
 
@@ -135,7 +142,7 @@ class RegistryClient:
             try:
                 index = await self.fetch_index(url)
             except Exception:
-                logger.warning("registry_fetch_failed", url=url)
+                logger.warning("registry_fetch_failed", url=url, exc_info=True)
                 continue
 
             for pack in index.packs:

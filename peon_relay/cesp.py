@@ -175,17 +175,29 @@ def _load_pack_from_manifest(manifest_path: Path) -> Pack | None:
         return None
 
 
-def load_packs(pack_dir: str, active_pack: str) -> CESPManager:
+def load_packs(pack_dir: str, active_pack: str, port: int = 9876) -> CESPManager:
     pack_path = Path(pack_dir)
     manager = CESPManager(active_pack_name=active_pack)
 
     if not pack_path.is_dir():
-        logger.warning("pack_dir_not_found", path=str(pack_path))
+        logger.warning(
+            "pack_dir_not_found",
+            path=str(pack_path),
+            hint=f"Create the directory and install a pack: "
+            f"mkdir -p {pack_dir} && curl -X POST http://localhost:{port}/registry/install/peon",
+        )
         return manager
 
     for manifest_path in pack_path.glob("*/openpeon.json"):
         pack = _load_pack_from_manifest(manifest_path)
         if pack is not None:
             manager.packs[pack.name] = pack
+
+    if not manager.packs:
+        logger.warning(
+            "no_packs_installed",
+            path=str(pack_path),
+            hint=f"Install a sound pack: curl -X POST http://localhost:{port}/registry/install/peon",
+        )
 
     return manager
