@@ -1,6 +1,14 @@
 # peon-relay
 
-A lightweight local HTTP relay that receives Claude Code hook events, translates them to [CESP](https://www.openpeon.com/integrate) sound categories, and plays audio feedback.
+> **AI coding agents don't tell you when they finish or need permission.** You tab away, lose focus, and waste fifteen minutes getting back into flow. peon-relay fixes this with game-character voice lines and audio banners — across your whole network.
+
+peon-relay is the **network companion to [peon-ping](https://github.com/PeonPing/peon-ping)**. Where peon-ping runs locally alongside a single agent, peon-relay acts as a central relay — like [Growl](https://growl.github.io/growl/) for AI-agent events — so that agents running on remote or headless machines can still trigger audio notifications on your workstation.
+
+It receives hook events from AI coding agents, translates them to [CESP](https://www.openpeon.com/integrate) sound categories, and plays audio feedback using any installed sound pack — Warcraft Peon, StarCraft Zerg, Portal GLaDOS, Zelda, and more.
+
+## Why it exists
+
+Modern AI coding agents — Claude Code, Amp, GitHub Copilot, Codex, Cursor, OpenCode, Kilo CLI, Kiro, Kimi Code, Windsurf, Rovo Dev CLI, and others — work asynchronously and silently. They finish tasks, hit permission prompts, or run into errors without any notification to you. peon-relay bridges that gap. It sits on your network, receives events from any agent that can send an HTTP POST (or be wrapped with a `curl` one-liner), and makes sure you hear about it.
 
 ## Quick start
 
@@ -63,6 +71,70 @@ Add to `.claude/settings.json`:
 }
 ```
 
+## Other agents and generic curl usage
+
+Any agent or script that can run `curl` can send events to peon-relay — no native HTTP hook support required.
+
+### Signal that a task is finished
+
+```bash
+curl -s -X POST http://RELAY_HOST:9876/hook \
+  -H "Content-Type: application/json" \
+  -d '{"hook_event_name":"Stop","session_id":"my-session"}'
+```
+
+### Signal that input or approval is needed
+
+```bash
+curl -s -X POST http://RELAY_HOST:9876/hook \
+  -H "Content-Type: application/json" \
+  -d '{"hook_event_name":"Notification","message":"input required","session_id":"my-session"}'
+```
+
+### Signal a task error
+
+```bash
+curl -s -X POST http://RELAY_HOST:9876/hook \
+  -H "Content-Type: application/json" \
+  -d '{"hook_event_name":"PostToolUse","tool_response":{"is_error":true},"session_id":"my-session"}'
+```
+
+### Wrap any shell command
+
+Append a `curl` call so you get notified when a long-running command finishes:
+
+```bash
+my-long-command && curl -s -X POST http://RELAY_HOST:9876/hook \
+  -H "Content-Type: application/json" \
+  -d "{\"hook_event_name\":\"Stop\",\"session_id\":\"$(date +%s)-$$\"}"
+```
+
+Or define a helper function in your shell profile:
+
+```bash
+peon_done() {
+  curl -s -X POST http://RELAY_HOST:9876/hook \
+    -H "Content-Type: application/json" \
+    -d "{\"hook_event_name\":\"Stop\",\"session_id\":\"$(date +%s)-$$\"}" \
+    > /dev/null
+}
+
+# Usage: some-command; peon_done
+```
+
+> **Tip:** The `session_id` field is used only for grouping events in logs. Using `$$` (shell PID) ties all commands in the same terminal to one session — fine for most uses. Use `$(date +%s)-$$` for a unique ID per invocation.
+
+Replace `RELAY_HOST` with the IP or hostname of the machine running peon-relay. For local use: `127.0.0.1`.
+
+Use the optional `X-Peon-Pack` header to select a specific sound pack per caller:
+
+```bash
+curl -s -X POST http://RELAY_HOST:9876/hook \
+  -H "Content-Type: application/json" \
+  -H "X-Peon-Pack: zerg" \
+  -d '{"hook_event_name":"Stop","session_id":"my-session"}'
+```
+
 ## Per-agent sound packs
 
 Each agent can use a different sound pack. Resolution order (first match wins):
@@ -122,7 +194,7 @@ audio:
 
 | Method | Path | Description |
 |--------|------|-------------|
-| `POST` | `/hook` | Main intake for Claude Code hook payloads |
+| `POST` | `/hook` | Main intake for agent hook payloads (Claude Code, curl, any HTTP client) |
 | `GET` | `/health` | Health check with queue depth |
 | `GET` | `/packs` | List installed sound packs |
 | `POST` | `/test/{category}` | Manually trigger a sound category |
