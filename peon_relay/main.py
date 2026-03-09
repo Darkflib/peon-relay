@@ -15,6 +15,11 @@ from peon_relay.config import Settings
 from peon_relay.handlers import HandlerRegistry
 from peon_relay.handlers.audio import AudioHandler, detect_audio_tool
 from peon_relay.handlers.log import LogHandler
+from peon_relay.handlers.notification import (
+    DesktopSink,
+    NotificationHandler,
+    NotificationSink,
+)
 from peon_relay.hooks import process_hook
 from peon_relay.queue import EventQueue, PeonEvent
 from peon_relay.registry import RegistryClient
@@ -55,7 +60,16 @@ async def lifespan(app: FastAPI):
     )
     log_handler = LogHandler(default_pack=config.audio.active_pack)
 
-    registry = HandlerRegistry([log_handler, audio_handler])
+    notification_sinks: list[NotificationSink] = []
+    if config.notification.enabled:
+        if config.notification.desktop.enabled:
+            notification_sinks.append(DesktopSink())
+    notification_handler = NotificationHandler(
+        sinks=notification_sinks,
+        disabled_categories=config.notification.disabled_categories,
+    )
+
+    registry = HandlerRegistry([log_handler, audio_handler, notification_handler])
 
     queue = EventQueue(
         cesp=cesp,

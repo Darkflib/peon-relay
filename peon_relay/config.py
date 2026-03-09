@@ -34,6 +34,16 @@ class LogConfig(BaseModel):
     level: str = "INFO"
 
 
+class DesktopNotificationConfig(BaseModel):
+    enabled: bool = True
+
+
+class NotificationConfig(BaseModel):
+    enabled: bool = True
+    disabled_categories: list[str] = []
+    desktop: DesktopNotificationConfig = DesktopNotificationConfig()
+
+
 def _yaml_source() -> dict:
     config_path = Path("config.yaml")
     if config_path.exists():
@@ -52,6 +62,7 @@ class Settings(BaseSettings):
     audio: AudioConfig = AudioConfig()
     registry: RegistryConfig = RegistryConfig()
     log: LogConfig = LogConfig()
+    notification: NotificationConfig = NotificationConfig()
 
     @classmethod
     def load(cls) -> Settings:

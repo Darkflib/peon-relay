@@ -190,6 +190,22 @@ audio:
     "192.168.1.51": "marine"
 ```
 
+## Desktop notifications
+
+Desktop popup notifications are enabled by default. When events fire, you'll see OS-native notifications (macOS Notification Center, Linux D-Bus, Windows toast).
+
+Configure in `config.yaml`:
+
+```yaml
+notification:
+  enabled: true
+  disabled_categories: ["task.progress", "task.acknowledge"]
+  desktop:
+    enabled: true
+```
+
+Or via environment variables: `PEON_NOTIFICATION__ENABLED=false`, `PEON_NOTIFICATION__DESKTOP__ENABLED=false`.
+
 ## Endpoints
 
 | Method | Path | Description |

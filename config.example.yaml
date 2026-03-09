@@ -21,3 +21,9 @@ registry:
 log:
   enabled: true
   level: "INFO"
+
+notification:
+  enabled: true
+  disabled_categories: []   # e.g. ["task.progress", "task.acknowledge"]
+  desktop:
+    enabled: true
