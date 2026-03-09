@@ -11,6 +11,21 @@ uv pip install -e .
 
 ### Install a sound pack
 
+Browse and install packs from the registry:
+
+```bash
+# List available packs
+curl http://localhost:9876/registry/packs
+
+# Search for packs
+curl 'http://localhost:9876/registry/packs?search=warcraft'
+
+# Install a pack
+curl -X POST http://localhost:9876/registry/install/peon
+```
+
+Or install manually:
+
 ```bash
 mkdir -p sounds
 curl -fsSL https://github.com/PeonPing/og-packs/archive/refs/tags/v1.1.0.tar.gz \
@@ -111,6 +126,30 @@ audio:
 | `GET` | `/health` | Health check with queue depth |
 | `GET` | `/packs` | List installed sound packs |
 | `POST` | `/test/{category}` | Manually trigger a sound category |
+| `GET` | `/registry/packs` | Browse available packs from the registry |
+| `POST` | `/registry/install/{name}` | Download and install a pack |
+| `DELETE` | `/registry/packs/{name}` | Uninstall a pack |
+
+## Pack registry
+
+The server fetches available packs from a registry (default: `https://peonping.github.io/registry/index.json`). Packs are downloaded as GitHub release tarballs, verified by SHA256, and hot-loaded without restart.
+
+Query parameters for `GET /registry/packs`:
+
+| Param | Description |
+|-------|-------------|
+| `search` | Filter by name, description, or tags |
+| `category` | Filter by CESP category support |
+| `trust_tier` | Filter by `official` or `community` |
+
+Configure additional registries in `config.yaml`:
+
+```yaml
+registry:
+  urls:
+    - "https://peonping.github.io/registry/index.json"
+    - "https://my-company.example.com/peon-registry/index.json"
+```
 
 ## Config
 

@@ -85,6 +85,23 @@ class CESPManager:
         self._last_played[key] = chosen
         return chosen
 
+    def load_single_pack(self, pack_dir: Path) -> Pack | None:
+        manifest_path = pack_dir / "openpeon.json"
+        pack = _load_pack_from_manifest(manifest_path)
+        if pack is not None:
+            self.packs[pack.name] = pack
+        return pack
+
+    def remove_pack(self, name: str) -> bool:
+        if name in self.packs:
+            del self.packs[name]
+            self._last_played = {
+                k: v for k, v in self._last_played.items()
+                if not k.startswith(f"{name}:")
+            }
+            return True
+        return False
+
     def list_packs(self) -> list[PackInfo]:
         return [
             pack.info(is_active=(name == self.active_pack_name))
@@ -98,6 +115,66 @@ def _resolve_sound_path(base_dir: Path, file_path: str) -> Path:
     return base_dir / file_path
 
 
+def _load_pack_from_manifest(manifest_path: Path) -> Pack | None:
+    if not manifest_path.exists():
+        logger.warning("manifest_not_found", path=str(manifest_path))
+        return None
+
+    try:
+        with open(manifest_path) as f:
+            data = json.load(f)
+
+        base_dir = manifest_path.parent
+        name = data.get("name", base_dir.name)
+        display_name = data.get("display_name", name)
+        cesp_version = data.get("cesp_version", "unknown")
+
+        if cesp_version != "1.0":
+            logger.warning(
+                "unknown_cesp_version",
+                pack=name,
+                version=cesp_version,
+            )
+
+        categories: dict[str, list[Path]] = {}
+        for cat_name, cat_data in data.get("categories", {}).items():
+            sounds = []
+            for entry in cat_data.get("sounds", []):
+                sound_file = entry.get("file", "")
+                resolved = _resolve_sound_path(base_dir, sound_file)
+                if resolved.exists():
+                    sounds.append(resolved.resolve())
+                else:
+                    logger.warning(
+                        "sound_file_missing",
+                        pack=name,
+                        category=cat_name,
+                        file=str(resolved),
+                    )
+            categories[cat_name] = sounds
+
+        aliases = data.get("category_aliases", {})
+
+        pack = Pack(
+            name=name,
+            display_name=display_name,
+            base_dir=base_dir.resolve(),
+            categories=categories,
+            aliases=aliases,
+        )
+        logger.info(
+            "pack_loaded",
+            pack=name,
+            categories=len(categories),
+            sounds=sum(len(s) for s in categories.values()),
+        )
+        return pack
+
+    except Exception:
+        logger.exception("pack_load_error", path=str(manifest_path))
+        return None
+
+
 def load_packs(pack_dir: str, active_pack: str) -> CESPManager:
     pack_path = Path(pack_dir)
     manager = CESPManager(active_pack_name=active_pack)
@@ -107,57 +184,8 @@ def load_packs(pack_dir: str, active_pack: str) -> CESPManager:
         return manager
 
     for manifest_path in pack_path.glob("*/openpeon.json"):
-        try:
-            with open(manifest_path) as f:
-                data = json.load(f)
-
-            base_dir = manifest_path.parent
-            name = data.get("name", base_dir.name)
-            display_name = data.get("display_name", name)
-            cesp_version = data.get("cesp_version", "unknown")
-
-            if cesp_version != "1.0":
-                logger.warning(
-                    "unknown_cesp_version",
-                    pack=name,
-                    version=cesp_version,
-                )
-
-            categories: dict[str, list[Path]] = {}
-            for cat_name, cat_data in data.get("categories", {}).items():
-                sounds = []
-                for entry in cat_data.get("sounds", []):
-                    sound_file = entry.get("file", "")
-                    resolved = _resolve_sound_path(base_dir, sound_file)
-                    if resolved.exists():
-                        sounds.append(resolved.resolve())
-                    else:
-                        logger.warning(
-                            "sound_file_missing",
-                            pack=name,
-                            category=cat_name,
-                            file=str(resolved),
-                        )
-                categories[cat_name] = sounds
-
-            aliases = data.get("category_aliases", {})
-
-            pack = Pack(
-                name=name,
-                display_name=display_name,
-                base_dir=base_dir.resolve(),
-                categories=categories,
-                aliases=aliases,
-            )
-            manager.packs[name] = pack
-            logger.info(
-                "pack_loaded",
-                pack=name,
-                categories=len(categories),
-                sounds=sum(len(s) for s in categories.values()),
-            )
-
-        except Exception:
-            logger.exception("pack_load_error", path=str(manifest_path))
+        pack = _load_pack_from_manifest(manifest_path)
+        if pack is not None:
+            manager.packs[pack.name] = pack
 
     return manager

@@ -9,10 +9,11 @@ dependencies = [
     "pydantic-settings>=2.3",
     "pyyaml>=6.0",
     "structlog>=24.1",
+    "httpx>=0.27",
 ]
 
 [project.optional-dependencies]
-dev = ["pytest", "pytest-asyncio", "httpx", "ruff"]
+dev = ["pytest", "pytest-asyncio", "ruff"]
 
 [tool.setuptools.packages.find]
 include = ["peon_relay*"]

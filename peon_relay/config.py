@@ -23,6 +23,12 @@ class AudioConfig(BaseModel):
     debounce_ms: int = 500
 
 
+class RegistryConfig(BaseModel):
+    urls: list[str] = ["https://peonping.github.io/registry/index.json"]
+    cache_ttl_seconds: int = 300
+    download_timeout_seconds: int = 120
+
+
 class LogConfig(BaseModel):
     enabled: bool = True
     level: str = "INFO"
@@ -44,6 +50,7 @@ class Settings(BaseSettings):
 
     server: ServerConfig = ServerConfig()
     audio: AudioConfig = AudioConfig()
+    registry: RegistryConfig = RegistryConfig()
     log: LogConfig = LogConfig()
 
     @classmethod

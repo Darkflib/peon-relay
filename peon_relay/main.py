@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import time
 from contextlib import asynccontextmanager
+from pathlib import Path
 from typing import Any
 
 import structlog
@@ -16,6 +17,7 @@ from peon_relay.handlers.audio import AudioHandler, detect_audio_tool
 from peon_relay.handlers.log import LogHandler
 from peon_relay.hooks import process_hook
 from peon_relay.queue import EventQueue, PeonEvent
+from peon_relay.registry import RegistryClient
 
 logger = structlog.get_logger()
 
@@ -23,11 +25,12 @@ logger = structlog.get_logger()
 _queue: EventQueue | None = None
 _cesp: CESPManager | None = None
 _config: Settings | None = None
+_registry: RegistryClient | None = None
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    global _queue, _cesp, _config
+    global _queue, _cesp, _config, _registry
 
     config = Settings.load()
     _config = config
@@ -40,6 +43,8 @@ async def lifespan(app: FastAPI):
 
     cesp = load_packs(config.audio.pack_dir, config.audio.active_pack)
     _cesp = cesp
+
+    _registry = RegistryClient(config.registry, config.audio.pack_dir)
 
     audio_tool = detect_audio_tool() if config.audio.enabled else None
     audio_handler = AudioHandler(
@@ -149,6 +154,88 @@ async def test_category(category: str) -> JSONResponse:
     )
     _queue.enqueue(event)
     return JSONResponse({"status": "queued", "category": category})
+
+
+@app.get("/registry/packs")
+async def registry_packs(
+    search: str | None = None,
+    category: str | None = None,
+    trust_tier: str | None = None,
+) -> list[dict]:
+    if _registry is None:
+        return []
+    available = await _registry.list_available(
+        search=search, category=category, trust_tier=trust_tier
+    )
+    installed = _registry.installed_packs()
+    return [
+        {**pack.model_dump(), "installed": pack.name in installed}
+        for pack in available
+    ]
+
+
+@app.post("/registry/install/{pack_name}")
+async def install_pack(pack_name: str) -> JSONResponse:
+    if _registry is None or _cesp is None:
+        return JSONResponse(
+            {"status": "error", "message": "Registry not initialized"},
+            status_code=503,
+        )
+
+    result = await _registry.install_pack(pack_name)
+    if not result.success:
+        return JSONResponse(
+            {
+                "status": "error",
+                "pack": result.pack_name,
+                "message": result.message,
+            },
+            status_code=400,
+        )
+
+    # Hot-reload the pack into CESPManager
+    pack_path = Path(_config.audio.pack_dir) / pack_name if _config else None
+    if pack_path:
+        _cesp.load_single_pack(pack_path)
+
+    return JSONResponse(
+        {
+            "status": "installed",
+            "pack": result.pack_name,
+            "version": result.version,
+            "message": result.message,
+        }
+    )
+
+
+@app.delete("/registry/packs/{pack_name}")
+async def uninstall_pack(pack_name: str) -> JSONResponse:
+    if _registry is None or _cesp is None:
+        return JSONResponse(
+            {"status": "error", "message": "Registry not initialized"},
+            status_code=503,
+        )
+
+    if _config and pack_name == _config.audio.active_pack:
+        return JSONResponse(
+            {
+                "status": "error",
+                "message": f"Cannot uninstall active pack '{pack_name}'",
+            },
+            status_code=409,
+        )
+
+    if not _registry.uninstall_pack(pack_name):
+        return JSONResponse(
+            {
+                "status": "error",
+                "message": f"Pack '{pack_name}' is not installed",
+            },
+            status_code=404,
+        )
+
+    _cesp.remove_pack(pack_name)
+    return JSONResponse({"status": "uninstalled", "pack": pack_name})
 
 
 def run() -> None:

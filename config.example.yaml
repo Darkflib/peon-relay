@@ -12,6 +12,12 @@ audio:
   disabled_categories: []   # e.g. ["task.progress"]
   debounce_ms: 500          # minimum ms between sounds in same category
 
+registry:
+  urls:
+    - "https://peonping.github.io/registry/index.json"
+  cache_ttl_seconds: 300        # how long to cache the registry index
+  download_timeout_seconds: 120 # timeout for downloading pack tarballs
+
 log:
   enabled: true
   level: "INFO"
