@@ -8,7 +8,7 @@ dependencies = [
     "pydantic>=2.7",
     "pydantic-settings>=2.3",
     "pyyaml>=6.0",
-    "structlog>=24.1",
+    "structlog>=25.5.0",
     "httpx>=0.27",
     "notify-py>=0.3",
 ]
